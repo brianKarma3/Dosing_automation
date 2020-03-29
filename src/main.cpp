@@ -6,6 +6,7 @@ dosing.
 // include the library code:
 #include <LiquidCrystal.h>
 #include <Wire.h>
+#include <AccelStepper.h>
 
 
 #define slider_dirPin 28
