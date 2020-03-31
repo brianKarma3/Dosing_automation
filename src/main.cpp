@@ -86,11 +86,11 @@ AccelStepper y_stepper = AccelStepper(motorInterfaceType, y_pulPin , y_dirPin);
 
 // initialize the library with the numbers of the interface pins
 LiquidCrystal lcd(13,12, 11, 10, 9, 8 );
-enum State {halt, manual_halt, auto_halt, manual_moving, initilisation, calibration, ready, dosing, recalibration}; 
+enum State {halt, manual_halt, auto_halt, manual_moving, initilisation,centering,  calibration, ready, dosing, recalibration}; 
 State current_state, previous_state; 
 
 
-enum auto_halt_options {initilisation, move_to_centre, calibration, ready}; 
+enum auto_halt_options {initilisation_option, move_to_centre, calibration_option, ready_option}; 
 
 auto_halt_options current_option, previous_option; 
 
@@ -98,6 +98,23 @@ auto_halt_options current_option, previous_option;
   float slider_speed  = 100;
   float x_speed = 100; 
   float y_speed = 100; 
+
+
+
+// the following variables are unsigned longs because the time, measured in
+// milliseconds, will quickly become a bigger number than can be stored in an int.
+unsigned long lastDebounceTime_start = 0;  // the last time the output pin was toggled
+unsigned long lastDebounceTime_next = 0;  // the last time the output pin was toggled
+unsigned long debounceDelay = 50;    // the debounce time; increase if the output flickers
+
+int start_button_state  = LOW; 
+int last_start_button_state = LOW; 
+bool start_flag = false; 
+
+// Next button is the 
+int next_button_state = LOW; 
+int last_next_button_state = LOW; 
+bool next_flag = false ; 
 
 
 void setup() {
@@ -111,7 +128,7 @@ void setup() {
   // Print a message to the LCD.
   lcd.setCursor(0,0);
   lcd.print("Doser setting up!");
-
+  
   
 
   // initialise current state to be halt; 
@@ -139,6 +156,35 @@ void loop() {
         current_state = halt; 
       }
 
+
+
+       int start_reading = digitalRead(start_button_pin); 
+
+        // ...............Debouncing logic for the start button.......
+        // If the switch changed, due to noise or pressing:
+        if (start_reading != last_start_button_state) {
+          // reset the debouncing timer
+          lastDebounceTime_start = millis();
+        }
+
+        if ((millis() - lastDebounceTime_start) > debounceDelay) {
+          // whatever the reading is at, it's been there for longer than the debounce
+          // delay, so take it as the actual current state:
+
+          // if the button state has changed:
+          if (start_reading != start_button_state) {
+            start_button_state = start_reading;
+
+            // only toggle the LED if the new button state is HIGH
+            if (start_button_state == HIGH) {
+              start_flag = true; 
+            }
+          }
+        }
+
+        // .......... end of the debouncing logic..... 
+
+
       switch(current_state)
       {
       case halt: 
@@ -146,6 +192,13 @@ void loop() {
 
         if(e_stop_pressed)
         {
+
+          lcd.clear();
+          lcd.setCursor(0,0);
+      
+          lcd.print("E STOP !!!");
+
+          lcd.setCursor(0,1);
           lcd.print("E STOP !!!");
         }
         else
@@ -160,6 +213,8 @@ void loop() {
           {
             current_state = manual_halt; 
             previous_state =halt; 
+
+            lcd.clear(); 
             lcd.setCursor(0,0);
             lcd.print("Manual mode");
           }
@@ -172,6 +227,7 @@ void loop() {
         
         if (current_state != previous_state)
         {
+          lcd.clear(); 
           lcd.setCursor(0,0);
            lcd.print("Manual mode"); 
         }
@@ -243,21 +299,176 @@ void loop() {
       // Check if the previous state is autohalt
         if(previous_state != auto_halt)
         {
-          current_option = initilisation;
+          current_option = auto_halt_options::initilisation_option;
 
-        }
-
-        switch (current_option)
-        {
-        case initilisation:
+          lcd.clear(); 
           lcd.setCursor(0,0);
           lcd.print("Press start");
           lcd.setCursor(0,1);
           lcd.print("To initialise");
 
+          current_state = auto_halt;
+          previous_state = auto_halt ; 
+        }
+
+        // Auto halt can be switched to manual halt mode by toggling the manual switch. 
+
+        if(digitalRead(manual_auto_pin)==0)
+        {
+          // Swith to manual halt
+          current_state = manual_halt ; 
+        }
+       
+
+        int next_reading = digitalRead(y_control_right);           
+        if (next_reading != last_next_button_state) {
+          // reset the debouncing timer
+          lastDebounceTime_next = millis();
+        }
+
+        if ((millis() - lastDebounceTime_next) > debounceDelay) {
+          // whatever the reading is at, it's been there for longer than the debounce
+          // delay, so take it as the actual current state:
+
+          // if the button state has changed:
+          if (next_reading != next_button_state) {
+            next_button_state = next_reading;
+
+            // only toggle the LED if the new button state is HIGH
+            if (next_button_state == HIGH) {
+              next_flag = true; 
+            }
+          }
+        }
+
+
+        // ............ End of debouncing logic .........
+
+        switch (current_option)
+        {
+        case initilisation_option:
+          if(current_option != previous_option)
+          {
+             // Display the option information on the LCD 
+            lcd.setCursor(0,0);
+            lcd.print("Press start");
+            lcd.setCursor(0,1);
+            lcd.print("To initialise");
+            previous_option = auto_halt_options::initilisation_option; 
+
+          }
+          // Now wait for user to press the start button to enter initializtion state. 
+          if(next_flag) // user use the y-axis toggle switch to trigger the next option.
+          {
+            current_option = move_to_centre; 
+            previous_option = auto_halt_options::initilisation_option; 
+            next_flag = false; 
+          }
+
+          if(start_flag)
+          {
+            current_state = State::initilisation;  
+            previous_state = auto_halt; 
+            start_flag = false; 
+          }
           
 
+
+          // If the 
+
           break;
+
+        case auto_halt_options::move_to_centre:
+
+          if(current_option != previous_option)
+          {
+            // Display the option information on the LCD
+            lcd.setCursor(0,0);
+            lcd.print("Press start to");
+            lcd.setCursor(0,1);
+            lcd.print("Centre platform");
+
+            previous_option = auto_halt_options::move_to_centre; 
+          }
+
+          if(next_flag) // user use the y-axis toggle switch to trigger the next option.
+          {
+            current_option = auto_halt_options::calibration_option; 
+            previous_option = auto_halt_options::move_to_centre; 
+            next_flag = false; 
+          }
+
+          if(start_flag)
+          {
+            current_state = centering; 
+            previous_state = State::auto_halt;
+            start_flag = false; 
+
+          }
+
+
+        break;
+
+        case calibration_option:
+        if(current_option != previous_option)
+          {
+            // Display the option information on the LCD
+            lcd.setCursor(0,0);
+            lcd.print("Press start to");
+            lcd.setCursor(0,1);
+            lcd.print("calibrate:");
+
+            previous_option = auto_halt_options::calibration_option; 
+          }
+
+           if(next_flag) // user use the y-axis toggle switch to trigger the next option.
+          {
+            current_option = auto_halt_options::ready_option; 
+            previous_option = auto_halt_options::calibration_option; 
+            next_flag = false; 
+          }
+
+          if(start_flag)
+          {
+            current_state = calibration; 
+            previous_state = State::auto_halt;
+            start_flag = false; 
+
+          }
+
+        break; 
+
+
+        case ready_option:
+        if(current_option != previous_option)
+          {
+            // Display the option information on the LCD
+            lcd.setCursor(0,0);
+            lcd.print("Press START to");
+            lcd.setCursor(0,1);
+            lcd.print("begin dosing");
+
+            previous_option = auto_halt_options::ready_option; 
+          }
+
+           if(next_flag) // user use the y-axis toggle switch to trigger the next option.
+          {
+            current_option = auto_halt_options::initilisation_option; 
+            next_flag = false; 
+          }
+
+          if(start_flag)
+          {
+            current_state = ready; 
+
+            start_flag = false; 
+
+          }
+
+        break; 
+
+
+
         
         default:
           break;
@@ -269,9 +480,29 @@ void loop() {
       break; 
 
 
+      case State::initilisation:
 
+      break; 
 
+      case State::centering:
 
+      break; 
+
+      case calibration:
+
+      break; 
+
+      case ready:
+
+      break; 
+
+      case dosing: 
+
+      break; 
+
+      case recalibration:
+
+      break; 
 
       
       default:
