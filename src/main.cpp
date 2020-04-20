@@ -2,7 +2,7 @@
 This program is designed to control the 2D platform to achieve automated dog treat
 dosing.
 
-
+// 1000 steps for 200mm appox. 
 ^ Y
 |
 |
@@ -21,6 +21,8 @@ dosing.
 #include <Wire.h>
 #include <AccelStepper.h>
 #include <HX711.h>
+#include <stdlib.h> 
+
 
 
 
@@ -43,9 +45,9 @@ dosing.
 #define x2_dirPin 34
 #define x2_enaPin 35
 
-#define y_pulPin 36
+#define y_pulPin 38
 #define y_dirPin 37
-#define y_enaPin 38
+#define y_enaPin 36
 
 #define motorInterfaceType 1
 
@@ -60,10 +62,10 @@ dosing.
 #define y_control_up 45 
 
 // Define E-stop pin (Need to be pulled up. )
-#define e_stop_pin 3
+#define e_stop_pin 2
 
 // Start pin (Need to add pull down resistor)
-#define start_button_pin 2
+#define start_button_pin 3
 
 // 0 for manual, 1 for auto
 #define manual_auto_pin 46
@@ -133,17 +135,20 @@ float y_speed = 400;
 
 // Centre position absolute position
 
-float centre_x_position = 40000; 
-float centre_y_position = 30000; 
+float centre_x_position = -1000; 
+float centre_y_position = 1000; 
 
 // the following variables are unsigned longs because the time, measured in
 // milliseconds, will quickly become a bigger number than can be stored in an int.
 unsigned long lastDebounceTime_start = 0;  // the last time the output pin was toggled
 unsigned long lastDebounceTime_next = 0;  // the last time the output pin was toggled
+unsigned long lastDebounceTime_nozzle = 0; 
 unsigned long debounceDelay = 50;    // the debounce time; increase if the output flickers
+unsigned long debounceDelay_nozzle = 2; 
 
 int start_button_state  = LOW; 
 int last_start_button_state = LOW; 
+int last_nozzle_state = HIGH; 
 bool start_flag = false; 
 
 // Next button is the 
@@ -160,14 +165,14 @@ bool slider_done_flag = false;
 
 // Calibration constants and flags
 int calib_count =0; ; 
-int calib_times = 40; 
+int calib_times = 10;   // Should be 40, using 10 for dev
 
 int tuning_count = 0; 
 int tuning_times = 4; 
 
 bool nozzle_signal_flag = true;  // Flag indicates that there is a falling edge of nozzle valve signal.
                                   // It means the dosing has just been completed. 
-int nozzle_valve_state = 0 ; 
+int nozzle_valve_state = 0; 
 
 HX711 scale;
 
@@ -183,6 +188,16 @@ float weight_diff;
 bool treat_size_is_small = true; // True for small treat and false for large treat. 
 bool full_mould = true; // True for a full mould; false for a 3/4 mould. 
 
+int dosing_times = 0; // Total number of times to dose in a dosing run. 
+int dosing_count = 0; // Used to record ho
+
+// Large treat full size array
+int Full_large_x[] =  {-100, -100, -100, -100, -100, -200 , -200 , -200, -200, -200} ;
+int Full_large_y[] = {100, 200, 300, 400, 500, 500, 400, 300, 200, 100};  
+
+int* x_sequence; 
+int* y_sequence; 
+bool to_next_postion; 
 
 void setup() {
 
@@ -193,7 +208,11 @@ void setup() {
 
   // Set dosing control pin to output
   pinMode(Dosing_control_pin, OUTPUT); 
-  digitalWrite(Dosing_control_pin, LOW);  // Set to low. 
+  digitalWrite(Dosing_control_pin, LOW);  // Set to low.
+
+  pinMode(Nozzle_signal_in, INPUT); 
+
+  digitalWrite(Nozzle_signal_in, HIGH);  
 
   // set up the LCD's number of columns and rows:
   lcd.begin(16, 2);
@@ -269,6 +288,11 @@ void loop() {
 
           lcd.setCursor(0,1);
           lcd.print("E STOP !!!");
+
+          digitalWrite(Dosing_control_pin, LOW); 
+          
+          // Serial.println("Stop button detected!"); 
+          Serial.println(digitalRead(Nozzle_signal_in)); 
         }
         else
         {
@@ -351,8 +375,12 @@ void loop() {
           x_moving_right(); 
         }
 
+        if(digitalRead(start_button_pin))
+        {
 
-
+          Load_cell_tare(); 
+        }
+        
 
 
         previous_state = manual_halt; 
@@ -687,7 +715,8 @@ void loop() {
 
           if(start_flag)
           {
-            current_state = centering ; 
+            current_state = calibration ;
+            previous_state = centering;  
             start_flag = false; 
 
           }
@@ -696,8 +725,14 @@ void loop() {
         }
         else
         {
-          x1_stepper.runToPosition(); 
-          y_stepper.runToPosition(); 
+          x1_stepper.run(); 
+          y_stepper.run(); 
+
+          //Debug 
+          Serial.print("X_position:");
+          Serial.println(x1_stepper.currentPosition()); 
+
+
         } 
         
       break; 
@@ -708,9 +743,9 @@ void loop() {
           
           lcd.clear(); 
           lcd.setCursor(0,0);
-          lcd.print("Calibrating the doser");
+          lcd.print("Calibrating");
           lcd.setCursor(0,1);
-
+          lcd.print("the doser"); 
           if(previous_state != recalibration)
           {
             calib_count = 0; 
@@ -734,6 +769,9 @@ void loop() {
           if(nozzle_signal_flag)
           {
             calib_count++; 
+            nozzle_signal_flag = false; 
+
+            Serial.println("Dosing completing flag detected!"); 
           }
           
           if(calib_count == calib_times)
@@ -762,14 +800,19 @@ void loop() {
             // Turning check the falling edge 
             checking_dosing_completion(); 
             if(nozzle_signal_flag)
-            {
-              tuning_count++; 
-              nozzle_signal_flag = false; 
-            }
+          {
+            tuning_count++; 
+            nozzle_signal_flag = false; 
 
-            if(tuning_count > tuning_times)
+            Serial.println("Dosing completing flag detected!"); 
+          }
+          
+
+            if(tuning_count > tuning_times) // Tuning time is reached. 
             {
               weighing_flag = true;
+              digitalWrite(Dosing_control_pin, LOW); // Turn off the doser. 
+
             }
 
           }
@@ -778,29 +821,29 @@ void loop() {
           {
             // After dosing pause for 1s.
             delay(1000); 
-
-            
+            tuning_count =0; 
+            weighing_flag = false; 
             // weigh the dosed weight. 
             float avg_treat_weight = Load_cell_read()/(float)tuning_times; 
+            // For debugging
+            Serial.println(avg_treat_weight); 
 
             // Check the difference between the dosing weight and the desired weight. 
 
             if(digitalRead(treat_size_selection) == 1) 
             {
-              treat_size_is_small = true; 
-              weight_diff = avg_treat_weight -desired_weight_small_treat; 
+              treat_size_is_small = false; 
+              weight_diff = avg_treat_weight -desired_weight_large_treat; 
 
             }
             else 
             {
-              treat_size_is_small = false; 
-              weight_diff = avg_treat_weight -desired_weight_large_treat; 
+              treat_size_is_small = true; 
+              weight_diff = avg_treat_weight - desired_weight_small_treat; 
             }
             if(abs(weight_diff)>0.2)
             {
-              state_before_recalib = calibration ; 
-
-              current_state = recalibration; 
+             current_state = calibration;  
             }
             else 
             {
@@ -916,11 +959,84 @@ void loop() {
 
           // Check the treat size and mould size selection. 
 
-           
+          if(digitalRead(treat_size_selection) && digitalRead(mould_size_pin)) 
+          {
+            // Treat size is large and mould is full sized mould. 
+            // dosing_times = Full_large_x::size() ; 
+            dosing_times = sizeof(Full_large_x) / sizeof(int); 
+            x_sequence = Full_large_x; 
+            y_sequence = Full_large_y;
+          }
           
+          dosing_count = 0 ; 
+          to_next_postion = true; 
           
+          Serial.print("Doing times is  ");
+          Serial.println(dosing_times); 
 
         }
+        else
+        {
+          if(dosing_count < dosing_times) // Still need to carry on dosing tasks
+          {
+            if(to_next_postion == true)
+            {
+              x1_stepper.moveTo((x_sequence[dosing_count])); 
+              y_stepper.moveTo(y_sequence[dosing_count]); 
+              to_next_postion =false; 
+              Serial.println("Moving position set. "); 
+            }
+            else
+            {
+              x1_stepper.run();
+              y_stepper.run();
+              if((x1_stepper.currentPosition() == x_sequence[dosing_count]) && (y_stepper.currentPosition() == y_sequence[dosing_count]))
+              {
+                // Dosing position reached. 
+                // turn on the dosing.
+                digitalWrite(Dosing_control_pin,1);
+
+                //delay(1000); // Temporarily to use delay function to 
+
+                // Now we need to check if the nozzle flag if high 
+
+                checking_dosing_completion();
+                if(nozzle_signal_flag)
+                {
+                  digitalWrite(Dosing_control_pin, 0 );
+
+                  to_next_postion = true; 
+                  dosing_count ++ ;
+                  nozzle_signal_flag = false; 
+                }
+                // if(digitalRead(Nozzle_signal_in))
+                // {
+                //   digitalWrite(Dosing_control_pin, 0 );
+
+                //   to_next_postion = true; 
+                //   dosing_count ++ ;
+                  
+                // }
+                  
+                
+              }
+            }
+            
+          }
+          else 
+          {
+            // Dosing has been done.  Move to the next state. Shoud be recalibration, but if calibration function is not done. We move to the ready state
+            current_state = ready; 
+
+          }
+          
+        }
+        
+
+
+
+        
+
 
 
         break; 
@@ -1056,25 +1172,30 @@ bool checking_dosing_completion()
 
       // ...............Debouncing logic for the start button.......
       // If the switch changed, due to noise or pressing:
-      if (nozzle_reading != last_start_button_state) {
+      if (nozzle_reading != last_nozzle_state) {
         // reset the debouncing timer
-        lastDebounceTime_start = millis();
+        lastDebounceTime_nozzle = millis();
+        
+
       }
 
-      if ((millis() - lastDebounceTime_start) > debounceDelay) {
+      if ((millis() - lastDebounceTime_nozzle) > debounceDelay_nozzle) {
         // whatever the reading is at, it's been there for longer than the debounce
         // delay, so take it as the actual current state:
 
         // if the button state has changed:
-        if (nozzle_reading != start_button_state) {
-          nozzle_valve_state = nozzle_reading;
 
+        if (nozzle_reading != nozzle_valve_state) {
+          
+          nozzle_valve_state = nozzle_reading;
+          Serial.println("Nozzle change detected!"); 
           // only toggle the LED if the new button state is HIGH
           if (nozzle_valve_state == LOW) {
             nozzle_signal_flag = true; 
           }
         }
       }
+      last_nozzle_state = nozzle_reading; 
 
       return nozzle_signal_flag; 
 
