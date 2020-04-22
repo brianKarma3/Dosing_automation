@@ -22,6 +22,7 @@ dosing.
 #include <AccelStepper.h>
 #include <HX711.h>
 #include <stdlib.h> 
+#include <string.h>
 
 
 
@@ -111,6 +112,8 @@ bool checking_dosing_completion();
 void Load_cell_tare(); 
 float Load_cell_read(); 
 
+int Calc_slider_position(int weight_difference); 
+
 // Create a new instance of the AccelStepper class:
 AccelStepper slider_stepper = AccelStepper(motorInterfaceType, slider_pulPin, slider_dirPin);
 AccelStepper x1_stepper = AccelStepper(motorInterfaceType, x1_pulPin , x1_dirPin);
@@ -135,8 +138,8 @@ float y_speed = 400;
 
 // Centre position absolute position
 
-float centre_x_position = -1000; 
-float centre_y_position = 1000; 
+float centre_x_position = -1510; 
+float centre_y_position = 600; 
 
 // the following variables are unsigned longs because the time, measured in
 // milliseconds, will quickly become a bigger number than can be stored in an int.
@@ -145,6 +148,8 @@ unsigned long lastDebounceTime_next = 0;  // the last time the output pin was to
 unsigned long lastDebounceTime_nozzle = 0; 
 unsigned long debounceDelay = 50;    // the debounce time; increase if the output flickers
 unsigned long debounceDelay_nozzle = 2; 
+
+bool manual_weight_display_flag = false; 
 
 int start_button_state  = LOW; 
 int last_start_button_state = LOW; 
@@ -165,7 +170,7 @@ bool slider_done_flag = false;
 
 // Calibration constants and flags
 int calib_count =0; ; 
-int calib_times = 10;   // Should be 40, using 10 for dev
+int calib_times = 20;   // Should be 40, using 10 for dev
 
 int tuning_count = 0; 
 int tuning_times = 4; 
@@ -192,12 +197,19 @@ int dosing_times = 0; // Total number of times to dose in a dosing run.
 int dosing_count = 0; // Used to record ho
 
 // Large treat full size array
-int Full_large_x[] =  {-100, -100, -100, -100, -100, -200 , -200 , -200, -200, -200} ;
-int Full_large_y[] = {100, 200, 300, 400, 500, 500, 400, 300, 200, 100};  
+int Full_large_x[] =  {-550, -950, -1350, -1750, -2150, -2150 , -1750 , -1350, -950, -550, -550, -950, -1350, -1750, -2150, -2150 , -1750 , -1350, -950, -550} ;
+int Full_large_y[]= {0, 0, 0, 0, 0, 375, 375, 375, 375, 375, 750, 750,750,750,750, 1125,  1125, 1125, 1125, 1125};  
+
+int Full_small_x[] = {-550, -875, -1200, -1525, -1850, -2175, -2175, -1850, -1525, -1200, -875, -550, -550, -875, -1200, -1525, -1850, -2175, -2175, -1850, -1525, -1200, -875, -550};
+int Full_small_y[] = {0, 0 , 0, 0, 0, 0 , 375, 375, 375, 375, 375, 375 , 750, 750,750,750,750,750,  1125,  1125, 1125, 1125, 1125, 1125 }; 
 
 int* x_sequence; 
 int* y_sequence; 
 bool to_next_postion; 
+
+// float desired_weight_small = 9.5;
+// float desired_weight_large = 12.5; 
+float treat_weight_diff = 0; 
 
 void setup() {
 
@@ -232,19 +244,20 @@ void setup() {
   slider_stepper.setAcceleration(2000);
 
 
-  y_stepper.setMaxSpeed(400);
-  y_stepper.setAcceleration(2000);
+  y_stepper.setMaxSpeed(800);
+  y_stepper.setAcceleration(4000);
 
-  x1_stepper.setMaxSpeed(400);
-  x1_stepper.setAcceleration(2000);
-  x2_stepper.setMaxSpeed(400);
-  x2_stepper.setAcceleration(2000);
+  x1_stepper.setMaxSpeed(800);
+  x1_stepper.setAcceleration(4000);
+  x2_stepper.setMaxSpeed(800);
+  x2_stepper.setAcceleration(4000);
 
 
   scale.begin(LC_DOUT_Pin,  LC_CLK_pin);
   scale.set_scale();
   scale.tare(); //Reset the scale to 0
   zero_factor = scale.read_average(); //Get a baseline reading
+
 }
 
 
@@ -291,25 +304,27 @@ void loop() {
 
           digitalWrite(Dosing_control_pin, LOW); 
           
-          // Serial.println("Stop button detected!"); 
-          Serial.println(digitalRead(Nozzle_signal_in)); 
+          Serial.println("Stop button detected!"); 
+          //Serial.println(digitalRead(Nozzle_signal_in)); 
         }
         else
         {
-          if(digitalRead(manual_auto_pin))
+          if(!digitalRead(manual_auto_pin))
           {
             //Auto
-            current_state = auto_halt;
-            previous_state = halt; 
-          }
-          else
-          {
             current_state = manual_halt; 
             previous_state =halt; 
-
             lcd.clear(); 
             lcd.setCursor(0,0);
             lcd.print("Manual mode");
+          }
+          else
+          {
+            current_state = previous_state;
+            
+
+
+            
           }
         }
         
@@ -323,6 +338,7 @@ void loop() {
           lcd.clear(); 
           lcd.setCursor(0,0);
            lcd.print("Manual mode"); 
+           manual_weight_display_flag =false; 
         }
         
         // For the slider:
@@ -350,30 +366,67 @@ void loop() {
         else
         {
           slider_stepper.stop(); 
+          // For the x-axis:
+          if(digitalRead(x_control_left) ==1 && digitalRead(LS_x_left)==0)
+          {
+            x_moving_left(); 
+          }
+          else if(digitalRead(x_control_right) ==1 && digitalRead(LS_x_right)==0)
+          {
+            x_moving_right(); 
+          }
+          else 
+          {
+            // For the y-axis:
+            if(digitalRead(y_control_down) ==1 && digitalRead(LS_y_bottom)==0)
+            {
+              y_moving_down();
+            }
+            else if(digitalRead(y_control_up) ==1 && digitalRead(LS_y_top)==0)
+            {
+              y_moving_up(); 
+            }
+            else 
+            {
+              checking_start_button_toggle(); 
+              if(start_flag)
+              {
+                Load_cell_tare(); 
+                manual_weight_display_flag =true; 
+
+              }
+              if(manual_weight_display_flag)
+              {
+                float lc_reading = Load_cell_read(); 
+                // Display to the lcd. 
+
+                lcd.clear(); 
+                lcd.setCursor(0,0);
+
+                lcd.print(lc_reading); 
+                lcd.println(" g");
+
+              }
+            }
+          }
+
+
         }
         
 
 
-        // For the y-axis:
-        if(digitalRead(y_control_down) ==1 && digitalRead(LS_y_bottom)==0)
-        {
-          y_moving_down();
-        }
-        else if(digitalRead(y_control_up) ==1 && digitalRead(LS_y_top)==0)
-        {
-          y_moving_up(); 
-        }
+        
 
 
-        // For the x-axis:
-        if(digitalRead(x_control_left) ==1 && digitalRead(LS_x_left)==0)
-        {
-          x_moving_left(); 
-        }
-        else if(digitalRead(x_control_right) ==1 && digitalRead(LS_x_right)==0)
-        {
-          x_moving_right(); 
-        }
+        // // For the x-axis:
+        // if(digitalRead(x_control_left) ==1 && digitalRead(LS_x_left)==0)
+        // {
+        //   x_moving_left(); 
+        // }
+        // else if(digitalRead(x_control_right) ==1 && digitalRead(LS_x_right)==0)
+        // {
+        //   x_moving_right(); 
+        // }
 
         if(digitalRead(start_button_pin))
         {
@@ -469,7 +522,7 @@ void loop() {
           if(current_option != previous_option)
           {
              // Display the option information on the LCD 
-             lcd.clear(); 
+            lcd.clear(); 
             lcd.setCursor(0,0);
             lcd.print("Press start");
             lcd.setCursor(0,1);
@@ -657,6 +710,7 @@ void loop() {
           // Both flags are triggered, the platform is regarded at the origin. 
           if(x_done_flag&&y_done_flag)
           {
+            lcd.clear(); 
             lcd.setCursor(0,0);
             lcd.print("Init Done");
             lcd.setCursor(0,1);
@@ -833,25 +887,28 @@ void loop() {
             if(digitalRead(treat_size_selection) == 1) 
             {
               treat_size_is_small = false; 
-              weight_diff = avg_treat_weight -desired_weight_large_treat; 
+              weight_diff = -avg_treat_weight + desired_weight_large_treat; 
 
             }
             else 
             {
               treat_size_is_small = true; 
-              weight_diff = avg_treat_weight - desired_weight_small_treat; 
+              weight_diff = -avg_treat_weight + desired_weight_small_treat; 
             }
             if(abs(weight_diff)>0.2)
             {
+
              current_state = calibration;  
+             slider_stepper.move(Calc_slider_position(weight_diff));
+             slider_stepper.runToPosition(); 
+
+             
             }
             else 
             {
               current_state = ready; 
             }
-            
-
-          
+                      
           }
 
 
@@ -875,14 +932,26 @@ void loop() {
 
         if(previous_state !=current_state)
         { 
+          
+          if(previous_state == dosing)
+          {
+            lcd.clear(); 
+            lcd.setCursor(0,0);
+            lcd.println("Total weight:");
+            lcd.setCursor(0,1);
+            
+            lcd.print(Load_cell_read()); 
+          }
+          else{
+
+          
+            lcd.clear(); 
+            lcd.setCursor(0,0);
+            lcd.print("Moving platform");
+            lcd.setCursor(0,1);
+            lcd.print("to Bottom-left");
+          }
           previous_state = ready; 
-          lcd.clear(); 
-          lcd.setCursor(0,0);
-          lcd.print("Moving platform");
-          lcd.setCursor(0,1);
-          lcd.print("to Bottom-left");
-          
-          
           x_done_flag = false; 
           y_done_flag = false; 
           slider_done_flag = false; 
@@ -956,10 +1025,11 @@ void loop() {
           lcd.setCursor(0,0);
           lcd.print("Dosing starts");
           lcd.setCursor(0,1);
+          nozzle_signal_flag = false; 
 
           // Check the treat size and mould size selection. 
 
-          if(digitalRead(treat_size_selection) && digitalRead(mould_size_pin)) 
+          if(digitalRead(treat_size_selection) && digitalRead(mould_size_pin))  // Large treat and large mould. 
           {
             // Treat size is large and mould is full sized mould. 
             // dosing_times = Full_large_x::size() ; 
@@ -967,12 +1037,34 @@ void loop() {
             x_sequence = Full_large_x; 
             y_sequence = Full_large_y;
           }
+          else if(digitalRead(treat_size_selection) && !digitalRead(mould_size_pin)) //Large treat and small mould. 
+          {
+            dosing_times = sizeof(Full_large_x) / sizeof(int)/4*3; 
+            x_sequence = Full_large_x; 
+            y_sequence = Full_large_y;
+          }
+          else if(!digitalRead(treat_size_selection) && digitalRead(mould_size_pin)) 
+          {
+            dosing_times = sizeof(Full_small_x) / sizeof(int); 
+            x_sequence = Full_small_x; 
+            y_sequence = Full_small_y;
+            
+          }
+          else 
+          {
+            dosing_times = sizeof(Full_small_x) / sizeof(int)/4*3; 
+            x_sequence = Full_small_x; 
+            y_sequence = Full_small_y;
+          }
           
           dosing_count = 0 ; 
           to_next_postion = true; 
           
           Serial.print("Doing times is  ");
           Serial.println(dosing_times); 
+
+          // Tare the schale.
+          Load_cell_tare(); 
 
         }
         else
@@ -1008,6 +1100,9 @@ void loop() {
                   to_next_postion = true; 
                   dosing_count ++ ;
                   nozzle_signal_flag = false; 
+
+                  //Add delay of 0.3s. 
+                  delay(250); 
                 }
                 // if(digitalRead(Nozzle_signal_in))
                 // {
@@ -1026,18 +1121,32 @@ void loop() {
           else 
           {
             // Dosing has been done.  Move to the next state. Shoud be recalibration, but if calibration function is not done. We move to the ready state
-            current_state = ready; 
+            // current_state = ready; 
+
+            // Calculate the difference between the desired and current average treat weigth. 
+            float avg_treat_weight = Load_cell_read()/dosing_times; 
+            if(digitalRead(treat_size_selection))
+            {treat_weight_diff = desired_weight_large_treat - avg_treat_weight;}
+            else
+            {
+              treat_weight_diff = desired_weight_small_treat -avg_treat_weight;
+
+
+            }
+            Serial.println("Weight diff is:"); 
+            Serial.println(treat_weight_diff); 
+            
+            if(abs(treat_weight_diff)<0.3)
+            {current_state = ready;}
+            else
+            {
+              current_state = recalibration; 
+            }
+            
 
           }
           
         }
-        
-
-
-
-        
-
-
 
         break; 
       }
@@ -1047,16 +1156,30 @@ void loop() {
       {
         if(previous_state != recalibration)
         {
+          
           previous_state = recalibration; 
           // Set the sliding moving target by using the 
 
           // slider_stepper.move(Calc_slider_position()); 
+          lcd.clear();
+          lcd.setCursor(0,0);
+          lcd.print("Recalib!");
+          lcd.setCursor(0,1); 
+          lcd.print(treat_weight_diff); 
+          
+
+          
+          slider_stepper.move(Calc_slider_position(treat_weight_diff)); 
+          
+          
+            
+        
         }
         slider_stepper.runToPosition();
 
         if(slider_stepper.targetPosition()==slider_stepper.currentPosition())
         {
-          current_state = state_before_recalib; 
+          current_state = ready; 
           previous_state = recalibration; 
         }
 
@@ -1117,13 +1240,13 @@ void y_moving_down()
 
 void slider_moving_left()
 {
-  slider_stepper.setSpeed(300); 
+  slider_stepper.setSpeed(100); 
   slider_stepper.runSpeed(); 
 }
 
 void slider_moving_right()
 {
-  slider_stepper.setSpeed(-300); 
+  slider_stepper.setSpeed(-100); 
   slider_stepper.runSpeed(); 
 }
 
@@ -1223,14 +1346,26 @@ void Load_cell_tare()
 // Read and converty load cell reading to grams
 float Load_cell_read()
 {
-  return (scale.read_average()-zero_factor)/calibration_factor; 
+  float result = -(scale.read_average(5)-zero_factor)/calibration_factor;;
+  Serial.println("result"); 
+  return  result ;
 }
 
 // Move the dose sider based on the gram difference between the desired and actual weight per treat. 
 // The function calculate the relave position of the current position of the slider. 
-float Calc_slider_position()
+int Calc_slider_position(int weight_difference)
 {
-  float moving_ratio = 1000; // Need to tune this ratio accordingly, which is similar to tune a P controller . 
+  int target_position_slider = -50 * weight_difference; 
+  if(target_position_slider > 200)
+  {
+    target_position_slider =200;
+  }
+  else if (target_position_slider < -200)
+  {
+    target_position_slider = -200; 
+  }
+
+  return target_position_slider; 
 
 }
 
