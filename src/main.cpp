@@ -211,6 +211,16 @@ bool to_next_postion;
 // float desired_weight_large = 12.5; 
 float treat_weight_diff = 0; 
 
+// For calibration during dosing. 
+int calibration_size =5; 
+int calibration_count = 0 ; 
+
+float weight_n = 0 ; 
+float weight_n_1= 0; 
+
+float desired_treat_weight; 
+
+
 void setup() {
 
    Serial.begin(115200);
@@ -244,19 +254,21 @@ void setup() {
   slider_stepper.setAcceleration(2000);
 
 
-  y_stepper.setMaxSpeed(800);
-  y_stepper.setAcceleration(4000);
+  y_stepper.setMaxSpeed(1000);
+  y_stepper.setAcceleration(3200);
 
-  x1_stepper.setMaxSpeed(800);
-  x1_stepper.setAcceleration(4000);
+  x1_stepper.setMaxSpeed(900);
+  x1_stepper.setAcceleration(2800);
   x2_stepper.setMaxSpeed(800);
-  x2_stepper.setAcceleration(4000);
+  x2_stepper.setAcceleration(2800);
 
 
   scale.begin(LC_DOUT_Pin,  LC_CLK_pin);
   scale.set_scale();
   scale.tare(); //Reset the scale to 0
   zero_factor = scale.read_average(); //Get a baseline reading
+
+  Serial.println("Set up completed. ");
 
 }
 
@@ -365,7 +377,7 @@ void loop() {
         }
         else
         {
-          slider_stepper.stop(); 
+          //slider_stepper.stop(); 
           // For the x-axis:
           if(digitalRead(x_control_left) ==1 && digitalRead(LS_x_left)==0)
           {
@@ -410,30 +422,6 @@ void loop() {
             }
           }
 
-
-        }
-        
-
-
-        
-
-
-        // // For the x-axis:
-        // if(digitalRead(x_control_left) ==1 && digitalRead(LS_x_left)==0)
-        // {
-        //   x_moving_left(); 
-        // }
-        // else if(digitalRead(x_control_right) ==1 && digitalRead(LS_x_right)==0)
-        // {
-        //   x_moving_right(); 
-        // }
-
-        if(digitalRead(start_button_pin))
-        {
-
-          Load_cell_tare(); 
-        }
-        
 
 
         previous_state = manual_halt; 
@@ -517,150 +505,150 @@ void loop() {
 
         switch (current_option)
         {
-        case initilisation_option:
-        {
-          if(current_option != previous_option)
+          case initilisation_option:
           {
-             // Display the option information on the LCD 
-            lcd.clear(); 
-            lcd.setCursor(0,0);
-            lcd.print("Press start");
-            lcd.setCursor(0,1);
-            lcd.print("To initialise");
-            previous_option = auto_halt_options::initilisation_option; 
+            if(current_option != previous_option)
+            {
+              // Display the option information on the LCD 
+              lcd.clear(); 
+              lcd.setCursor(0,0);
+              lcd.print("Press start");
+              lcd.setCursor(0,1);
+              lcd.print("To initialise");
+              previous_option = auto_halt_options::initilisation_option; 
 
-          }
-          // Now wait for user to press the start button to enter initializtion state. 
-          if(next_flag) // user use the y-axis toggle switch to trigger the next option.
-          {
-            current_option = move_to_centre; 
-            previous_option = auto_halt_options::initilisation_option; 
-            next_flag = false; 
+            }
+            // Now wait for user to press the start button to enter initializtion state. 
+            if(next_flag) // user use the y-axis toggle switch to trigger the next option.
+            {
+              current_option = move_to_centre; 
+              previous_option = auto_halt_options::initilisation_option; 
+              next_flag = false; 
+            }
+
+            if(start_flag)
+            {
+              Serial.println("Going to init!"); 
+              current_state = State::initiliasation;  
+              previous_state = auto_halt; 
+              start_flag = false; 
+            }
+            
+
+
+            // If the 
+
+            break;
           }
 
-          if(start_flag)
-          {
-            Serial.println("Going to init!"); 
-            current_state = State::initiliasation;  
-            previous_state = auto_halt; 
-            start_flag = false; 
+          case auto_halt_options::move_to_centre:{
+
+            if(current_option != previous_option)
+            {
+              // Display the option information on the LCD
+              lcd.clear(); 
+              lcd.setCursor(0,0);
+              lcd.print("Press start to");
+              lcd.setCursor(0,1);
+              lcd.print("Centre platform");
+
+              previous_option = auto_halt_options::move_to_centre; 
+            }
+
+            if(next_flag) // user use the y-axis toggle switch to trigger the next option.
+            {
+              current_option = auto_halt_options::calibration_option; 
+              previous_option = auto_halt_options::move_to_centre; 
+              next_flag = false; 
+            }
+
+            if(start_flag)
+            {
+              current_state = centering; 
+              previous_state = State::auto_halt;
+              start_flag = false; 
+
+            }
+
+
+            break;
           }
+
+          case calibration_option:
+          {
+            if(current_option != previous_option)
+            {
+              // Display the option information on the LCD
+              lcd.clear(); 
+              lcd.setCursor(0,0);
+              lcd.print("Press start to");
+              lcd.setCursor(0,1);
+              lcd.print("calibrate:");
+
+              previous_option = auto_halt_options::calibration_option; 
+            }
+
+            if(next_flag) // user use the y-axis toggle switch to trigger the next option.
+            {
+              current_option = auto_halt_options::ready_option; 
+              previous_option = auto_halt_options::calibration_option; 
+              next_flag = false; 
+            }
+
+            if(start_flag)
+            {
+              current_state = calibration; 
+              previous_state = State::auto_halt;
+              start_flag = false; 
+
+            }
+
+            break; 
+          }
+
+
+          case ready_option:
+          {
           
+          if(current_option != previous_option)
+            {
+              // Display the option information on the LCD
+              lcd.clear(); 
+              lcd.setCursor(0,0);
+              lcd.print("Press START to");
+              lcd.setCursor(0,1);
+              lcd.print("begin dosing");
 
+              previous_option = auto_halt_options::ready_option; 
+            }
 
-          // If the 
+            if(next_flag) // user use the y-axis toggle switch to trigger the next option.
+            {
+              current_option = auto_halt_options::initilisation_option; 
+              next_flag = false; 
+            }
+
+            if(start_flag)
+            {
+              current_state = ready; 
+
+              start_flag = false; 
+
+            }
+
+            break; 
+          }
+          default:
+            
+
 
           break;
         }
-
-        case auto_halt_options::move_to_centre:{
-
-          if(current_option != previous_option)
-          {
-            // Display the option information on the LCD
-            lcd.clear(); 
-            lcd.setCursor(0,0);
-            lcd.print("Press start to");
-            lcd.setCursor(0,1);
-            lcd.print("Centre platform");
-
-            previous_option = auto_halt_options::move_to_centre; 
-          }
-
-          if(next_flag) // user use the y-axis toggle switch to trigger the next option.
-          {
-            current_option = auto_halt_options::calibration_option; 
-            previous_option = auto_halt_options::move_to_centre; 
-            next_flag = false; 
-          }
-
-          if(start_flag)
-          {
-            current_state = centering; 
-            previous_state = State::auto_halt;
-            start_flag = false; 
-
-          }
-
-
-          break;
-        }
-
-        case calibration_option:
-        {
-          if(current_option != previous_option)
-          {
-            // Display the option information on the LCD
-            lcd.clear(); 
-            lcd.setCursor(0,0);
-            lcd.print("Press start to");
-            lcd.setCursor(0,1);
-            lcd.print("calibrate:");
-
-            previous_option = auto_halt_options::calibration_option; 
-          }
-
-           if(next_flag) // user use the y-axis toggle switch to trigger the next option.
-          {
-            current_option = auto_halt_options::ready_option; 
-            previous_option = auto_halt_options::calibration_option; 
-            next_flag = false; 
-          }
-
-          if(start_flag)
-          {
-            current_state = calibration; 
-            previous_state = State::auto_halt;
-            start_flag = false; 
-
-          }
-
-          break; 
-        }
-
-
-        case ready_option:
-        {
-        
-        if(current_option != previous_option)
-          {
-            // Display the option information on the LCD
-            lcd.clear(); 
-            lcd.setCursor(0,0);
-            lcd.print("Press START to");
-            lcd.setCursor(0,1);
-            lcd.print("begin dosing");
-
-            previous_option = auto_halt_options::ready_option; 
-          }
-
-          if(next_flag) // user use the y-axis toggle switch to trigger the next option.
-          {
-            current_option = auto_halt_options::initilisation_option; 
-            next_flag = false; 
-          }
-
-          if(start_flag)
-          {
-            current_state = ready; 
-
-            start_flag = false; 
-
-          }
-
-          break; 
-        }
-        default:
-          
-
-
-        break;
-      }
 
 
 
         previous_state =  auto_halt; 
-      break; 
+        break; 
 
       }
 
@@ -737,8 +725,9 @@ void loop() {
       }
 
       case State::centering:
+      {
 
-      if(previous_state !=current_state)
+        if(previous_state !=current_state)
         {
           previous_state = centering; 
           lcd.clear(); 
@@ -790,6 +779,7 @@ void loop() {
         } 
         
       break; 
+      }
 
       case calibration:
         if(previous_state !=current_state)
@@ -906,7 +896,9 @@ void loop() {
             }
             else 
             {
-              current_state = ready; 
+              current_state = auto_halt; 
+
+              
             }
                       
           }
@@ -914,15 +906,6 @@ void loop() {
 
         }
         
-        
-
-        // Step 1: dosing n times to empty air in the doser. 
-
-
-
-        // Step 2: dose 3 times and then adjust the slider until satisfactory results are achieved. 
-
-
         
 
 
@@ -933,7 +916,7 @@ void loop() {
         if(previous_state !=current_state)
         { 
           
-          if(previous_state == dosing)
+          if(previous_state == dosing || previous_state ==recalibration)
           {
             lcd.clear(); 
             lcd.setCursor(0,0);
@@ -1028,6 +1011,7 @@ void loop() {
           nozzle_signal_flag = false; 
 
           // Check the treat size and mould size selection. 
+          desired_treat_weight = (digitalRead(treat_size_selection)==1? desired_weight_large_treat: desired_weight_small_treat); 
 
           if(digitalRead(treat_size_selection) && digitalRead(mould_size_pin))  // Large treat and large mould. 
           {
@@ -1065,6 +1049,12 @@ void loop() {
 
           // Tare the schale.
           Load_cell_tare(); 
+          delay(200); 
+          
+          weight_n =  Load_cell_read();
+
+          weight_n_1 = weight_n; 
+          calibration_count = 0 ; 
 
         }
         else
@@ -1102,17 +1092,37 @@ void loop() {
                   nozzle_signal_flag = false; 
 
                   //Add delay of 0.3s. 
-                  delay(250); 
-                }
-                // if(digitalRead(Nozzle_signal_in))
-                // {
-                //   digitalWrite(Dosing_control_pin, 0 );
+                  
 
-                //   to_next_postion = true; 
-                //   dosing_count ++ ;
+                  //Logic for dosing calibration. 
+                  calibration_count ++; 
                   
-                // }
+                  delay(200); 
+                  if(calibration_count ==calibration_size)
+                  {
+                    delay(200);
+                    weight_n = Load_cell_read(); 
+                    Serial.println(weight_n); 
+                    treat_weight_diff = desired_treat_weight -  (weight_n-weight_n_1)/calibration_size; 
+                    slider_stepper.move( Calc_slider_position(treat_weight_diff)) ;
+                    slider_stepper.runToPosition() ;
+                    weight_n_1 = weight_n; 
+                    calibration_count = 0 ; 
+
+                    lcd.clear(); 
+                    lcd.setCursor(0,0); 
+                    lcd.print("5 treate weight:");
+                    lcd.setCursor(0,1); 
+                    lcd.print(weight_n); 
+                  } 
+                  else
+                  {
+                    
+                  }
                   
+
+                }
+               
                 
               }
             }
@@ -1190,7 +1200,8 @@ void loop() {
       
       default:
         break;
-      }
+        }
+  } 
 
   // starting the state machine implementation
 
@@ -1337,7 +1348,7 @@ void Load_cell_tare()
 {
   scale.tare(); //Reset the scale to 0
 
-  zero_factor = scale.read_average(); //Get a baseline reading
+  zero_factor = scale.read_average(5); //Get a baseline reading
   Serial.print("Zero factor: "); //This can be used to remove the need to tare the scale. Useful in permanent scale projects.
   Serial.println(zero_factor);
 
@@ -1347,7 +1358,8 @@ void Load_cell_tare()
 float Load_cell_read()
 {
   float result = -(scale.read_average(5)-zero_factor)/calibration_factor;;
-  Serial.println("result"); 
+  Serial.println("scale result"); 
+  Serial.println(result);
   return  result ;
 }
 
@@ -1355,7 +1367,7 @@ float Load_cell_read()
 // The function calculate the relave position of the current position of the slider. 
 int Calc_slider_position(int weight_difference)
 {
-  int target_position_slider = -50 * weight_difference; 
+  int target_position_slider = -40 * weight_difference; 
   if(target_position_slider > 200)
   {
     target_position_slider =200;
