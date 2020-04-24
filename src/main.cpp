@@ -212,7 +212,7 @@ bool to_next_postion;
 float treat_weight_diff = 0; 
 
 // For calibration during dosing. 
-int calibration_size =5; 
+int calibration_size =4; 
 int calibration_count = 0 ; 
 
 float weight_n = 0 ; 
@@ -254,11 +254,11 @@ void setup() {
   slider_stepper.setAcceleration(2000);
 
 
-  y_stepper.setMaxSpeed(1000);
-  y_stepper.setAcceleration(3200);
+  y_stepper.setMaxSpeed(1600);
+  y_stepper.setAcceleration(4000);
 
-  x1_stepper.setMaxSpeed(900);
-  x1_stepper.setAcceleration(2800);
+  x1_stepper.setMaxSpeed(1800);
+  x1_stepper.setAcceleration(5000);
   x2_stepper.setMaxSpeed(800);
   x2_stepper.setAcceleration(2800);
 
@@ -316,8 +316,8 @@ void loop() {
 
           digitalWrite(Dosing_control_pin, LOW); 
           
-          Serial.println("Stop button detected!"); 
-          //Serial.println(digitalRead(Nozzle_signal_in)); 
+          // Serial.println("Stop button detected!"); 
+          
         }
         else
         {
@@ -1097,17 +1097,22 @@ void loop() {
                   //Logic for dosing calibration. 
                   calibration_count ++; 
                   
-                  delay(200); 
+                  delay(100); 
+                  weight_n = Load_cell_read(); 
                   if(calibration_count ==calibration_size)
                   {
-                    delay(200);
+                    
                     weight_n = Load_cell_read(); 
+                    
                     Serial.println(weight_n); 
                     treat_weight_diff = desired_treat_weight -  (weight_n-weight_n_1)/calibration_size; 
                     slider_stepper.move( Calc_slider_position(treat_weight_diff)) ;
                     slider_stepper.runToPosition() ;
                     weight_n_1 = weight_n; 
                     calibration_count = 0 ; 
+
+                    Serial.println("Weight diff per treat:");
+                    Serial.println(treat_weight_diff);
 
                     lcd.clear(); 
                     lcd.setCursor(0,0); 
@@ -1367,7 +1372,7 @@ float Load_cell_read()
 // The function calculate the relave position of the current position of the slider. 
 int Calc_slider_position(int weight_difference)
 {
-  int target_position_slider = -40 * weight_difference; 
+  int target_position_slider = -30 * weight_difference; 
   if(target_position_slider > 200)
   {
     target_position_slider =200;
