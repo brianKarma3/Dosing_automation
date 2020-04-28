@@ -251,14 +251,14 @@ void setup() {
 
 
   slider_stepper.setMaxSpeed(400);
-  slider_stepper.setAcceleration(2000);
+  slider_stepper.setAcceleration(500);
 
 
-  y_stepper.setMaxSpeed(1600);
-  y_stepper.setAcceleration(4000);
+  y_stepper.setMaxSpeed(1700);
+  y_stepper.setAcceleration(4800);
 
   x1_stepper.setMaxSpeed(1800);
-  x1_stepper.setAcceleration(5000);
+  x1_stepper.setAcceleration(4000);
   x2_stepper.setMaxSpeed(800);
   x2_stepper.setAcceleration(2800);
 
@@ -269,6 +269,11 @@ void setup() {
   zero_factor = scale.read_average(); //Get a baseline reading
 
   Serial.println("Set up completed. ");
+
+
+  // // Stepper motor testing
+  // slider_stepper.setCurrentPosition(0); 
+  // slider_stepper.move(20); 
 
 }
 
@@ -307,6 +312,7 @@ void loop() {
         {
 
           lcd.clear();
+          delay(2); 
           lcd.setCursor(0,0);
       
           lcd.print("E STOP !!!");
@@ -327,6 +333,7 @@ void loop() {
             current_state = manual_halt; 
             previous_state =halt; 
             lcd.clear(); 
+            delay(2); 
             lcd.setCursor(0,0);
             lcd.print("Manual mode");
           }
@@ -345,9 +352,12 @@ void loop() {
 
       case manual_halt:
         
+        
+
         if (current_state != previous_state)
         {
           lcd.clear(); 
+          delay(2); 
           lcd.setCursor(0,0);
            lcd.print("Manual mode"); 
            manual_weight_display_flag =false; 
@@ -413,6 +423,8 @@ void loop() {
                 // Display to the lcd. 
 
                 lcd.clear(); 
+                delay(2); 
+
                 lcd.setCursor(0,0);
 
                 lcd.print(lc_reading); 
@@ -453,6 +465,7 @@ void loop() {
           current_option = auto_halt_options::initilisation_option;
 
           lcd.clear(); 
+          delay(2); 
           lcd.setCursor(0,0);
           lcd.print("Press start");
           lcd.setCursor(0,1);
@@ -511,6 +524,7 @@ void loop() {
             {
               // Display the option information on the LCD 
               lcd.clear(); 
+              delay(2); 
               lcd.setCursor(0,0);
               lcd.print("Press start");
               lcd.setCursor(0,1);
@@ -546,11 +560,11 @@ void loop() {
             if(current_option != previous_option)
             {
               // Display the option information on the LCD
-              lcd.clear(); 
+              
               lcd.setCursor(0,0);
-              lcd.print("Press start to");
+              lcd.print("Press start to   ");
               lcd.setCursor(0,1);
-              lcd.print("Centre platform");
+              lcd.print("Centre platform   ");
 
               previous_option = auto_halt_options::move_to_centre; 
             }
@@ -579,11 +593,11 @@ void loop() {
             if(current_option != previous_option)
             {
               // Display the option information on the LCD
-              lcd.clear(); 
+              
               lcd.setCursor(0,0);
-              lcd.print("Press start to");
+              lcd.print("Press start to   ");
               lcd.setCursor(0,1);
-              lcd.print("calibrate:");
+              lcd.print("calibrate:  ");
 
               previous_option = auto_halt_options::calibration_option; 
             }
@@ -614,6 +628,7 @@ void loop() {
             {
               // Display the option information on the LCD
               lcd.clear(); 
+              delay(2); 
               lcd.setCursor(0,0);
               lcd.print("Press START to");
               lcd.setCursor(0,1);
@@ -662,11 +677,11 @@ void loop() {
         if(previous_state !=current_state)
         { 
           previous_state = initiliasation; 
-          lcd.clear(); 
+          
           lcd.setCursor(0,0);
-          lcd.print("Moving platform");
+          lcd.print("Moving platform ");
           lcd.setCursor(0,1);
-          lcd.print("to Bottom-left");
+          lcd.print("to Bottom-left ");
           
           
           x_done_flag = false; 
@@ -700,7 +715,7 @@ void loop() {
           {
             lcd.clear(); 
             lcd.setCursor(0,0);
-            lcd.print("Init Done");
+            lcd.print("Init Done       ");
             lcd.setCursor(0,1);
             lcd.print("Press start for next step.");
 
@@ -730,10 +745,12 @@ void loop() {
         if(previous_state !=current_state)
         {
           previous_state = centering; 
-          lcd.clear(); 
+          
+
           lcd.setCursor(0,0);
-          lcd.print("Moving to centre");
+          lcd.print("Moving to centre    ");
           lcd.setCursor(0,1);
+          lcd.print("               "); 
           
           // Set the target position for the centre. 
           x1_stepper.moveTo(centre_x_position); 
@@ -752,7 +769,7 @@ void loop() {
           lcd.setCursor(0,0);
           lcd.print("Press start to");
           lcd.setCursor(0,1);
-          lcd.print("Calibrate.");
+          lcd.print("Calibrate.       ");
 
           checking_start_button_toggle(); 
 
@@ -785,7 +802,7 @@ void loop() {
         if(previous_state !=current_state)
         {
           
-          lcd.clear(); 
+          
           lcd.setCursor(0,0);
           lcd.print("Calibrating");
           lcd.setCursor(0,1);
@@ -844,12 +861,12 @@ void loop() {
             // Turning check the falling edge 
             checking_dosing_completion(); 
             if(nozzle_signal_flag)
-          {
+            {
             tuning_count++; 
             nozzle_signal_flag = false; 
 
             Serial.println("Dosing completing flag detected!"); 
-          }
+            }
           
 
             if(tuning_count > tuning_times) // Tuning time is reached. 
@@ -885,7 +902,7 @@ void loop() {
               treat_size_is_small = true; 
               weight_diff = -avg_treat_weight + desired_weight_small_treat; 
             }
-            if(abs(weight_diff)>0.2)
+            if(abs(weight_diff)>0.3)
             {
 
              current_state = calibration;  
@@ -919,6 +936,7 @@ void loop() {
           if(previous_state == dosing || previous_state ==recalibration)
           {
             lcd.clear(); 
+            delay(2);  
             lcd.setCursor(0,0);
             lcd.println("Total weight:");
             lcd.setCursor(0,1);
@@ -928,11 +946,11 @@ void loop() {
           else{
 
           
-            lcd.clear(); 
+            
             lcd.setCursor(0,0);
-            lcd.print("Moving platform");
+            lcd.print("Moving platform        ");
             lcd.setCursor(0,1);
-            lcd.print("to Bottom-left");
+            lcd.print("to Bottom-left      ");
           }
           previous_state = ready; 
           x_done_flag = false; 
@@ -1005,10 +1023,15 @@ void loop() {
         { 
           previous_state = dosing; 
           lcd.clear(); 
+          delay(2); 
           lcd.setCursor(0,0);
           lcd.print("Dosing starts");
           lcd.setCursor(0,1);
           nozzle_signal_flag = false; 
+
+          slider_stepper.setCurrentPosition(0); 
+          slider_stepper.move(0); 
+
 
           // Check the treat size and mould size selection. 
           desired_treat_weight = (digitalRead(treat_size_selection)==1? desired_weight_large_treat: desired_weight_small_treat); 
@@ -1072,9 +1095,10 @@ void loop() {
             {
               x1_stepper.run();
               y_stepper.run();
-              if((x1_stepper.currentPosition() == x_sequence[dosing_count]) && (y_stepper.currentPosition() == y_sequence[dosing_count]))
+              slider_stepper.run(); 
+              if((abs(x1_stepper.currentPosition() - x_sequence[dosing_count]) < 150) && (abs(y_stepper.currentPosition() - y_sequence[dosing_count]) < 100) && !slider_stepper.isRunning())
               {
-                // Dosing position reached. 
+                // Dosing position reached.   `
                 // turn on the dosing.
                 digitalWrite(Dosing_control_pin,1);
 
@@ -1097,8 +1121,8 @@ void loop() {
                   //Logic for dosing calibration. 
                   calibration_count ++; 
                   
-                  delay(100); 
-                  weight_n = Load_cell_read(); 
+                  delay(150); 
+                  // weight_n = Load_cell_read(); 
                   if(calibration_count ==calibration_size)
                   {
                     
@@ -1107,18 +1131,18 @@ void loop() {
                     Serial.println(weight_n); 
                     treat_weight_diff = desired_treat_weight -  (weight_n-weight_n_1)/calibration_size; 
                     slider_stepper.move( Calc_slider_position(treat_weight_diff)) ;
-                    slider_stepper.runToPosition() ;
+                    // slider_stepper.runToPosition() ;
                     weight_n_1 = weight_n; 
                     calibration_count = 0 ; 
 
                     Serial.println("Weight diff per treat:");
                     Serial.println(treat_weight_diff);
 
-                    lcd.clear(); 
-                    lcd.setCursor(0,0); 
-                    lcd.print("5 treate weight:");
-                    lcd.setCursor(0,1); 
-                    lcd.print(weight_n); 
+                    
+                    // lcd.setCursor(0,0); 
+                    // lcd.print("5 treate weight:");
+                    // lcd.setCursor(0,1); 
+                    // lcd.print(weight_n); 
                   } 
                   else
                   {
@@ -1177,6 +1201,7 @@ void loop() {
 
           // slider_stepper.move(Calc_slider_position()); 
           lcd.clear();
+          delay(2); 
           lcd.setCursor(0,0);
           lcd.print("Recalib!");
           lcd.setCursor(0,1); 
@@ -1256,13 +1281,13 @@ void y_moving_down()
 
 void slider_moving_left()
 {
-  slider_stepper.setSpeed(100); 
+  slider_stepper.setSpeed(500); 
   slider_stepper.runSpeed(); 
 }
 
 void slider_moving_right()
 {
-  slider_stepper.setSpeed(-100); 
+  slider_stepper.setSpeed(-500); 
   slider_stepper.runSpeed(); 
 }
 
@@ -1373,15 +1398,16 @@ float Load_cell_read()
 int Calc_slider_position(int weight_difference)
 {
   int target_position_slider = -30 * weight_difference; 
-  if(target_position_slider > 200)
+  if(target_position_slider > 100)
   {
-    target_position_slider =200;
+    target_position_slider =100;
   }
-  else if (target_position_slider < -200)
+  else if (target_position_slider < -100)
   {
-    target_position_slider = -200; 
+    target_position_slider = -100; 
   }
-
+  Serial.println("Slider steps to move:");
+  Serial.println(target_position_slider); 
   return target_position_slider; 
 
 }
