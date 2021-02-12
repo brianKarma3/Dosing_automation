@@ -169,7 +169,7 @@ bool y_done_flag = false;
 bool slider_done_flag = false; 
 
 // Calibration constants and flags
-int calib_count =0; ; 
+int calib_count =0; 
 int calib_times = 20;   // Should be 40, using 10 for dev
 
 int tuning_count = 0; 
@@ -182,12 +182,15 @@ int nozzle_valve_state = 0;
 HX711 scale;
 
 
-float calibration_factor = -948.76; //Calibrated for the 2kg load cell
+// float calibration_factor = -948.76; //Calibrated for the 2kg load cell
+
+float calibration_factor = -720.8; //Calibrated for the 3kg load cell
+
 long zero_factor; 
 
 
-float desired_weight_small_treat = 9.5 ;// in grams
-float desired_weight_large_treat = 12.5; 
+float desired_weight_small_treat = 6;// in grams
+float desired_weight_large_treat = 9; 
 float weight_diff; 
 
 bool treat_size_is_small = true; // True for small treat and false for large treat. 
@@ -196,13 +199,23 @@ bool full_mould = true; // True for a full mould; false for a 3/4 mould.
 int dosing_times = 0; // Total number of times to dose in a dosing run. 
 int dosing_count = 0; // Used to record ho
 
-// Large treat full size array
-int Full_large_x[] =  {-550, -950, -1350, -1750, -2150, -2150 , -1750 , -1350, -950, -550, -550, -950, -1350, -1750, -2150, -2150 , -1750 , -1350, -950, -550} ;
-int Full_large_y[]= {0, 0, 0, 0, 0, 375, 375, 375, 375, 375, 750, 750,750,750,750, 1125,  1125, 1125, 1125, 1125};  
+// Large treat full size array original set up
+// int Full_large_x[] =  {-550, -950, -1350, -1750, -2150, -2150 , -1750 , -1350, -950, -550, -550, -950, -1350, -1750, -2150, -2150 , -1750 , -1350, -950, -550} ;
+// int Full_large_y[]= {0, 0, 0, 0, 0, 375, 375, 375, 375, 375, 750, 750,750,750,750, 1125,  1125, 1125, 1125, 1125};  
 
-int Full_small_x[] = {-550, -875, -1200, -1525, -1850, -2175, -2175, -1850, -1525, -1200, -875, -550, -550, -875, -1200, -1525, -1850, -2175, -2175, -1850, -1525, -1200, -875, -550};
-int Full_small_y[] = {0, 0 , 0, 0, 0, 0 , 375, 375, 375, 375, 375, 375 , 750, 750,750,750,750,750,  1125,  1125, 1125, 1125, 1125, 1125 }; 
+int Full_large_x[] =  {-190, -190, -190, -190, -190, -570 , -570, -570, -570, -570, -950, -950, -950, -950, -950, -1340 , -1340 , -1340, -1340, -1340} ;
+int Full_large_y[]= {400, 775, 1150, 1525, 1900, 1900, 1525, 1150, 775, 400, 400, 775, 1150, 1525, 1900, 1900, 1525, 1150, 775, 400};  
 
+
+int Full_small_x[] = {-190, -190, -190, -190, -190, -190,  -570 , -570, -570, -570, -570, -570 -950, -950, -950, -950, -950, -950,  -1340 , -1340 , -1340, -1340, -1340, -1340};
+int Full_small_y[] = {0, 325, 650, 975, 1300, 1625 , 1625, 1300, 975, 650, 325, 0 , 0, 325, 650, 975, 1300, 1625 , 1625, 1300, 975, 650, 325, 0 }; 
+
+int Two_large_x[] = {-190, -190, -190, -190, -190, -570 , -570, -570, -570, -570, -950, -950, -950, -950, -950, -1340 , -1340 , -1340, -1340, -1340, -1720, -1720, -1720, -1720, -1720, -2100, -2100, -2100, -2100, -2100, -2480, -2480, -2480, -2480, -2480,  -2760, -2760, -2760, -2760, -2760} ;
+int Two_large_y[] = {400, 775, 1150, 1525, 1900, 1900, 1525, 1150, 775, 400, 400, 775, 1150, 1525, 1900, 1900, 1525, 1150, 775, 400, 400, 775, 1150, 1525, 1900, 1900, 1525, 1150, 775, 400, 400, 775, 1150, 1525, 1900, 1900, 1525, 1150, 775, 400};  
+
+
+int Two_small_x[] = {-190, -190, -190, -190, -190, -190,-570 , -570, -570, -570, -570, -570, -950, -950, -950, -950, -950, -950,  -1340 , -1340 , -1340, -1340, -1340, -1340, -1720, -1720, -1720, -1720, -1720, -1720,  -2100, -2100, -2100, -2100, -2100, -2100,  -2480, -2480, -2480, -2480, -2480, -2480, -2760, -2760, -2760, -2760, -2760, -2760};
+int Two_small_y[] = {0, 325, 650, 975, 1300, 1625 , 1625, 1300, 975, 650, 325, 0 , 0, 325, 650, 975, 1300, 1625 , 1625, 1300, 975, 650, 325, 0 , 0, 325, 650, 975, 1300, 1625 , 1625, 1300, 975, 650, 325, 0 , 0, 325, 650, 975, 1300, 1625 , 1625, 1300, 975, 650, 325, 0 }; 
 int* x_sequence; 
 int* y_sequence; 
 bool to_next_postion; 
@@ -311,8 +324,7 @@ void loop() {
         if(e_stop_pressed)
         {
 
-          lcd.clear();
-          delay(2); 
+          lcd.begin(16, 2); 
           lcd.setCursor(0,0);
       
           lcd.print("E STOP !!!");
@@ -332,18 +344,16 @@ void loop() {
             //Auto
             current_state = manual_halt; 
             previous_state =halt; 
-            lcd.clear(); 
-            delay(2); 
+            lcd.begin(16, 2); 
             lcd.setCursor(0,0);
             lcd.print("Manual mode");
           }
           else
           {
+            // If the E-stop is not pressed, back to the previous state. 
             current_state = previous_state;
             
-
-
-            
+         
           }
         }
         
@@ -356,11 +366,12 @@ void loop() {
 
         if (current_state != previous_state)
         {
-          lcd.clear(); 
-          delay(2); 
+          lcd.begin(16, 2); 
           lcd.setCursor(0,0);
            lcd.print("Manual mode"); 
            manual_weight_display_flag =false; 
+           x_speed = 400; 
+           y_speed = 400; 
         }
         
         // For the slider:
@@ -430,6 +441,8 @@ void loop() {
                 lcd.print(lc_reading); 
                 lcd.println(" g");
 
+
+
               }
             }
           }
@@ -464,8 +477,7 @@ void loop() {
         {
           current_option = auto_halt_options::initilisation_option;
 
-          lcd.clear(); 
-          delay(2); 
+          lcd.begin(16, 2);  
           lcd.setCursor(0,0);
           lcd.print("Press start");
           lcd.setCursor(0,1);
@@ -523,8 +535,7 @@ void loop() {
             if(current_option != previous_option)
             {
               // Display the option information on the LCD 
-              lcd.clear(); 
-              delay(2); 
+              lcd.begin(16, 2); 
               lcd.setCursor(0,0);
               lcd.print("Press start");
               lcd.setCursor(0,1);
@@ -624,11 +635,10 @@ void loop() {
           case ready_option:
           {
           
-          if(current_option != previous_option)
+            if(current_option != previous_option)
             {
               // Display the option information on the LCD
-              lcd.clear(); 
-              delay(2); 
+              lcd.begin(16, 2); 
               lcd.setCursor(0,0);
               lcd.print("Press START to");
               lcd.setCursor(0,1);
@@ -713,7 +723,7 @@ void loop() {
           // Both flags are triggered, the platform is regarded at the origin. 
           if(x_done_flag&&y_done_flag)
           {
-            lcd.clear(); 
+            lcd.begin(16, 2); 
             lcd.setCursor(0,0);
             lcd.print("Init Done       ");
             lcd.setCursor(0,1);
@@ -765,7 +775,7 @@ void loop() {
         if(x1_stepper.currentPosition() == centre_x_position && y_stepper.currentPosition() == centre_y_position)
         {
            // Centre position is reached. 
-          lcd.clear(); 
+          lcd.begin(16, 2); 
           lcd.setCursor(0,0);
           lcd.print("Press start to");
           lcd.setCursor(0,1);
@@ -804,15 +814,28 @@ void loop() {
           
           
           lcd.setCursor(0,0);
-          lcd.print("Calibrating");
+          lcd.print("Calibrating     ");
           lcd.setCursor(0,1);
-          lcd.print("the doser"); 
+          lcd.print("the doser     "); 
           if(previous_state != recalibration)
           {
             calib_count = 0; 
+            tuning_count= 0 ;
+          }
+          else if (previous_state == halt)
+          {
+            digitalWrite(Dosing_control_pin, HIGH); 
+            Serial.println(calib_count);
+            Serial.println(tuning_count); 
+
+          }
+          else{
+            calib_count = 0; 
+            tuning_count =0; 
           }
           
           
+
           previous_state = calibration; 
           // x_done_flag = false; 
           // y_done_flag = false; 
@@ -935,11 +958,9 @@ void loop() {
           
           if(previous_state == dosing || previous_state ==recalibration)
           {
-            lcd.clear(); 
-            delay(2);  
+            lcd.begin(16, 2); 
             lcd.setCursor(0,0);
-            lcd.println("Total weight:");
-            lcd.setCursor(0,1);
+            
             
             lcd.print(Load_cell_read()); 
           }
@@ -956,6 +977,10 @@ void loop() {
           x_done_flag = false; 
           y_done_flag = false; 
           slider_done_flag = false; 
+
+          // Faster movement to the original position than in manaul mode. 
+          x_speed = 1000;
+          y_speed = 1000; 
         }
         else 
         {
@@ -989,7 +1014,7 @@ void loop() {
           // Both flags are triggered, the platform is regarded at the origin. 
           if(x_done_flag&&y_done_flag)
           {
-            lcd.setCursor(0,0);
+            lcd.setCursor(0,1);
             lcd.print("Ready to dose. ");
            
 
@@ -1022,8 +1047,8 @@ void loop() {
         if(previous_state !=current_state)
         { 
           previous_state = dosing; 
-          lcd.clear(); 
-          delay(2); 
+
+          lcd.begin(16, 2); 
           lcd.setCursor(0,0);
           lcd.print("Dosing starts");
           lcd.setCursor(0,1);
@@ -1036,43 +1061,68 @@ void loop() {
           // Check the treat size and mould size selection. 
           desired_treat_weight = (digitalRead(treat_size_selection)==1? desired_weight_large_treat: desired_weight_small_treat); 
 
-          if(digitalRead(treat_size_selection) && digitalRead(mould_size_pin))  // Large treat and large mould. 
+          // Check if double mould pin are selected.  
+
+          if(digitalRead(single_double_pin)) // True for double mould. 
           {
-            // Treat size is large and mould is full sized mould. 
-            // dosing_times = Full_large_x::size() ; 
-            dosing_times = sizeof(Full_large_x) / sizeof(int); 
-            x_sequence = Full_large_x; 
-            y_sequence = Full_large_y;
+            if(digitalRead(treat_size_selection)) // Large treat
+            {
+              dosing_times = sizeof(Two_large_x) / sizeof(int); 
+              x_sequence =  Two_large_x; 
+              y_sequence = Two_large_y;
+            }
+            else  // Small sized treats 
+            {
+              // dosing_times = sizeof(Two_small_x) / sizeof(int); 
+              dosing_times = 48; 
+              x_sequence =  Two_small_x; 
+              y_sequence = Two_small_y;
+            }
           }
-          else if(digitalRead(treat_size_selection) && !digitalRead(mould_size_pin)) //Large treat and small mould. 
+          
+          else  // THE SINGLE MOULD SITUATAION. 
           {
-            dosing_times = sizeof(Full_large_x) / sizeof(int)/4*3; 
-            x_sequence = Full_large_x; 
-            y_sequence = Full_large_y;
-          }
-          else if(!digitalRead(treat_size_selection) && digitalRead(mould_size_pin)) 
-          {
-            dosing_times = sizeof(Full_small_x) / sizeof(int); 
-            x_sequence = Full_small_x; 
-            y_sequence = Full_small_y;
-            
-          }
-          else 
-          {
-            dosing_times = sizeof(Full_small_x) / sizeof(int)/4*3; 
-            x_sequence = Full_small_x; 
-            y_sequence = Full_small_y;
+
+          
+            if(digitalRead(treat_size_selection) && digitalRead(mould_size_pin))  // Large treat and large mould. 
+            {
+              // Treat size is large and mould is full sized mould. 
+              // dosing_times = Full_large_x::size() ; 
+              dosing_times = sizeof(Full_large_x) / sizeof(int); 
+              x_sequence = Full_large_x; 
+              y_sequence = Full_large_y;
+            }
+            else if(digitalRead(treat_size_selection) && !digitalRead(mould_size_pin)) //Large treat and small mould. 
+            {
+              dosing_times = sizeof(Full_large_x) / sizeof(int)/4*3; 
+              x_sequence = Full_large_x; 
+              y_sequence = Full_large_y;
+            }
+            else if(!digitalRead(treat_size_selection) && digitalRead(mould_size_pin)) 
+            {
+              dosing_times = sizeof(Full_small_x) / sizeof(int); 
+              x_sequence = Full_small_x; 
+              y_sequence = Full_small_y;
+              
+            }
+            else 
+            {
+              dosing_times = sizeof(Full_small_x) / sizeof(int)/4*3; 
+              x_sequence = Full_small_x; 
+              y_sequence = Full_small_y;
+            }
           }
           
           dosing_count = 0 ; 
           to_next_postion = true; 
           
-          Serial.print("Doing times is  ");
-          Serial.println(dosing_times); 
+          // Serial.print("Doing times is  ");
+          // Serial.println(dosing_times); 
 
           // Tare the schale.
           Load_cell_tare(); 
-          delay(200); 
+
+          // delay(200); 
           
           weight_n =  Load_cell_read();
 
@@ -1144,10 +1194,7 @@ void loop() {
                     // lcd.setCursor(0,1); 
                     // lcd.print(weight_n); 
                   } 
-                  else
-                  {
-                    
-                  }
+
                   
 
                 }
@@ -1200,19 +1247,11 @@ void loop() {
           // Set the sliding moving target by using the 
 
           // slider_stepper.move(Calc_slider_position()); 
-          lcd.clear();
-          delay(2); 
+          lcd.begin(16, 2); 
           lcd.setCursor(0,0);
-          lcd.print("Recalib!");
-          lcd.setCursor(0,1); 
-          lcd.print(treat_weight_diff); 
-          
-
-          
+          lcd.print(treat_weight_diff);          
           slider_stepper.move(Calc_slider_position(treat_weight_diff)); 
-          
-          
-            
+  
         
         }
         slider_stepper.runToPosition();

@@ -1,52 +1,53 @@
+//
+// !!! WARNING !!! AUTO-GENERATED FILE!
+// PLEASE DO NOT MODIFY IT AND USE "platformio.ini":
+// https://docs.platformio.org/page/projectconf/section_env_build.html#build-flags
+//
 {
     "configurations": [
         {
-            "name": "!!! WARNING !!! AUTO-GENERATED FILE, PLEASE DO NOT MODIFY IT AND USE https://docs.platformio.org/page/projectconf/section_env_build.html#build-flags"
-        },
-        {
-            "name": "Mac",
-            "macFrameworkPath": [],
+            "name": "PlatformIO",
             "includePath": [
-                "/Users/brian/Documents/PlatformIO/Projects/Dosing_automation/lib/HX711-master/src",
-                "/Users/brian/.platformio/lib/AccelStepper_ID265/src",
+                "/Users/brian/Documents/PlatformIO/Projects/Dosing_automation/include",
+                "/Users/brian/Documents/PlatformIO/Projects/Dosing_automation/src",
                 "/Users/brian/.platformio/lib/LiquidCrystal_ID136",
                 "/Users/brian/.platformio/packages/framework-arduino-avr/libraries/Wire/src",
+                "/Users/brian/Documents/PlatformIO/Projects/Dosing_automation/lib/HX711-master/src",
+                "/Users/brian/.platformio/lib/AccelStepper_ID265/src",
+                "/Users/brian/.platformio/packages/framework-arduino-avr/cores/arduino",
+                "/Users/brian/.platformio/packages/framework-arduino-avr/variants/mega",
                 "/Users/brian/.platformio/lib/Adafruit NeoPixel_ID28",
                 "/Users/brian/.platformio/lib/HX711_ID1100/src",
                 "/Users/brian/.platformio/packages/framework-arduino-avr/libraries/EEPROM/src",
                 "/Users/brian/.platformio/packages/framework-arduino-avr/libraries/HID/src",
                 "/Users/brian/.platformio/packages/framework-arduino-avr/libraries/SPI/src",
                 "/Users/brian/.platformio/packages/framework-arduino-avr/libraries/SoftwareSerial/src",
-                "/Users/brian/Documents/PlatformIO/Projects/Dosing_automation/include",
-                "/Users/brian/Documents/PlatformIO/Projects/Dosing_automation/src",
-                "/Users/brian/.platformio/packages/framework-arduino-avr/cores/arduino",
-                "/Users/brian/.platformio/packages/framework-arduino-avr/variants/mega",
                 "/Users/brian/.platformio/packages/tool-unity",
                 ""
             ],
             "browse": {
                 "limitSymbolsToIncludedHeaders": true,
                 "path": [
-                    "/Users/brian/Documents/PlatformIO/Projects/Dosing_automation/lib/HX711-master/src",
-                    "/Users/brian/.platformio/lib/AccelStepper_ID265/src",
+                    "/Users/brian/Documents/PlatformIO/Projects/Dosing_automation/include",
+                    "/Users/brian/Documents/PlatformIO/Projects/Dosing_automation/src",
                     "/Users/brian/.platformio/lib/LiquidCrystal_ID136",
                     "/Users/brian/.platformio/packages/framework-arduino-avr/libraries/Wire/src",
+                    "/Users/brian/Documents/PlatformIO/Projects/Dosing_automation/lib/HX711-master/src",
+                    "/Users/brian/.platformio/lib/AccelStepper_ID265/src",
+                    "/Users/brian/.platformio/packages/framework-arduino-avr/cores/arduino",
+                    "/Users/brian/.platformio/packages/framework-arduino-avr/variants/mega",
                     "/Users/brian/.platformio/lib/Adafruit NeoPixel_ID28",
                     "/Users/brian/.platformio/lib/HX711_ID1100/src",
                     "/Users/brian/.platformio/packages/framework-arduino-avr/libraries/EEPROM/src",
                     "/Users/brian/.platformio/packages/framework-arduino-avr/libraries/HID/src",
                     "/Users/brian/.platformio/packages/framework-arduino-avr/libraries/SPI/src",
                     "/Users/brian/.platformio/packages/framework-arduino-avr/libraries/SoftwareSerial/src",
-                    "/Users/brian/Documents/PlatformIO/Projects/Dosing_automation/include",
-                    "/Users/brian/Documents/PlatformIO/Projects/Dosing_automation/src",
-                    "/Users/brian/.platformio/packages/framework-arduino-avr/cores/arduino",
-                    "/Users/brian/.platformio/packages/framework-arduino-avr/variants/mega",
                     "/Users/brian/.platformio/packages/tool-unity",
                     ""
                 ]
             },
             "defines": [
-                "PLATFORMIO=40302",
+                "PLATFORMIO=50100",
                 "ARDUINO_AVR_MEGA2560",
                 "F_CPU=16000000L",
                 "ARDUINO_ARCH_AVR",
@@ -54,7 +55,6 @@
                 "__AVR_ATmega2560__",
                 ""
             ],
-            "intelliSenseMode": "clang-x64",
             "cStandard": "c11",
             "cppStandard": "c++11",
             "compilerPath": "/Users/brian/.platformio/packages/toolchain-atmelavr/bin/avr-gcc",
